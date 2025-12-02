@@ -25,7 +25,7 @@ class Config {
     this.ARGO_PORT = process.env.ARGO_PORT || 8001;                             // 固定隧道端口,使用token需在cloudflare后台设置和这里一致
     this.CFIP = process.env.CFIP || "cdns.doon.eu.org";                         // 节点优选域名或优选ip 
     this.CFPORT = process.env.CFPORT || 443;                                    // 节点优选域名或优选ip对应的端口
-    this.NAME = process.env.NAME || "";                                      // 节点名称
+    this.NAME = process.env.NAME || "";                                         // 节点名称
   }
 }
 
@@ -772,3 +772,4 @@ app.run().catch((err) => {
   console.error("致命错误:", err);
   process.exit(1);
 });
+
