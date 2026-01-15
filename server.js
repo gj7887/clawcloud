@@ -55,22 +55,22 @@ class RealityKeyGenerator {
 // ==================== 系统配置加载器 ====================
 function loadSystemConfig() {
   return {
-    uploadApiUrl: process.env.UPLOAD_URL || "",                                // 需要上传订阅或保活时需填写上传接口url,例如：https://api.example.com
-    projectBaseUrl: process.env.PROJECT_URL || "",                             // 需要上传订阅或保活时需填写项目分配的url,例如：https://google.com
-    enableAutoKeepAlive: process.env.AUTO_ACCESS !== "false",                  // false关闭自动保活，true开启,需同时填写PROJECT_URL变量
-    storagePath: process.env.FILE_PATH || "./tmp",                             // 节点文件保存路径
-    subscriptionRouteName: process.env.SUB_PATH || "sub",                      // 订阅路径
-    httpPort: process.env.SERVER_PORT || process.env.PORT || 3000,             // http服务订阅端口
-    clientId: process.env.UUID || "fd17ed20-cda5-4c13-a374-354a7b9c1b53",      // 使用哪吒v1,在不同的平台运行需修改UUID,否则会覆盖
-    monitorServerHost: process.env.NEZHA_SERVER || "",                         // 哪吒v1填写形式: nz.abc.com:8008  哪吒v0填写形式：nz.abc.com
-    monitorServerPort: process.env.NEZHA_PORT || "",                           // 使用哪吒v1请留空，哪吒v0需填写
-    monitorClientKey: process.env.NEZHA_KEY || "",                             // 哪吒v1的NZ_CLIENT_SECRET或哪吒v0的agent密钥
-    tunnelDomainFixed: process.env.ARGO_DOMAIN || "",                          // 固定隧道域名,留空即启用临时隧道
-    tunnelAuthData: process.env.ARGO_AUTH || "",                               // 固定隧道密钥json或token,留空即启用临时隧道,json获取地址：https://json.zone.id
-    tunnelLocalPort: process.env.ARGO_PORT || 8001,                            // 固定隧道端口,使用token需在cloudflare后台设置和这里一致
-    cdnOptimizationDomain: process.env.CFIP || "cdns.doon.eu.org",             // 节点优选域名或优选ip 
-    cdnOptimizationPort: process.env.CFPORT || 443,                            // 节点优选域名或优选ip对应的端口
-    nodeName: process.env.NAME || "",                                          // 节点名称
+    uploadApiUrl: process.env.UPLOAD_URL || "",
+    projectBaseUrl: process.env.PROJECT_URL || "",
+    enableAutoKeepAlive: process.env.AUTO_ACCESS !== "false",
+    storagePath: process.env.FILE_PATH || "./tmp",
+    subscriptionRouteName: process.env.SUB_PATH || "sub",
+    httpPort: process.env.SERVER_PORT || process.env.PORT || 3000,
+    clientId: process.env.UUID || "aca19852-0a9b-452c-ab61-b1a4c8ea806b",
+    monitorServerHost: process.env.NEZHA_SERVER || "",
+    monitorServerPort: process.env.NEZHA_PORT || "",
+    monitorClientKey: process.env.NEZHA_KEY || "",
+    tunnelDomainFixed: process.env.ARGO_DOMAIN || "",
+    tunnelAuthData: process.env.ARGO_AUTH || "",
+    tunnelLocalPort: process.env.ARGO_PORT || 8001,
+    cdnOptimizationDomain: process.env.CFIP || "cdns.doon.eu.org",
+    cdnOptimizationPort: process.env.CFPORT || 443,
+    nodeName: process.env.NAME || "",
   };
 }
 
@@ -251,7 +251,7 @@ class ConfigurationEngine {
             wsSettings: {
               path: "/vless-reality",
               headers: {
-                User-Agent:
+                "User-Agent":
                   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
               },
             },
@@ -285,7 +285,7 @@ class ConfigurationEngine {
             wsSettings: {
               path: "/vmess-reality",
               headers: {
-                User-Agent:
+                "User-Agent":
                   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
               },
             },
@@ -318,7 +318,7 @@ class ConfigurationEngine {
             wsSettings: {
               path: "/trojan-reality",
               headers: {
-                User-Agent:
+                "User-Agent":
                   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
               },
             },
