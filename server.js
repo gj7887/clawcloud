@@ -61,12 +61,12 @@ function loadSystemConfig() {
     storagePath: process.env.FILE_PATH || "./tmp",                             // 节点文件保存路径
     subscriptionRouteName: process.env.SUB_PATH || "sub",                      // 订阅路径
     httpPort: process.env.SERVER_PORT || process.env.PORT || 3000,             // http服务订阅端口
-    clientId: process.env.UUID || "aca19852-0a9b-452c-ab61-b1a4c8ea806b",      // 使用哪吒v1,在不同的平台运行需修改UUID,否则会覆盖
+    clientId: process.env.UUID || "fd17ed20-cda5-4c13-a374-354a7b9c1b53",      // 使用哪吒v1,在不同的平台运行需修改UUID,否则会覆盖
     monitorServerHost: process.env.NEZHA_SERVER || "",                         // 哪吒v1填写形式: nz.abc.com:8008  哪吒v0填写形式：nz.abc.com
     monitorServerPort: process.env.NEZHA_PORT || "",                           // 使用哪吒v1请留空，哪吒v0需填写
     monitorClientKey: process.env.NEZHA_KEY || "",                             // 哪吒v1的NZ_CLIENT_SECRET或哪吒v0的agent密钥
-    tunnelDomainFixed: process.env.ARGO_DOMAIN || "",                          // 固定隧道域名,留空即启用临时隧道
-    tunnelAuthData: process.env.ARGO_AUTH || "",                               // 固定隧道密钥json或token,留空即启用临时隧道,json获取地址：https://json.zone.id
+    tunnelDomainFixed: process.env.ARGO_DOMAIN || "kaka.coookl.ggff.net",                          // 固定隧道域名,留空即启用临时隧道
+    tunnelAuthData: process.env.ARGO_AUTH || "eyJhIjoiYjQ3YzViY2UxYmM5OTNkYjc3YzQwMjE3MWE1ZDhiNmIiLCJ0IjoiZjU2MzJkMWEtZTI1Yy00N2NiLWFkMmEtMTdjOTJlMzhhMDgyIiwicyI6Ik9ETTVNVEUzWWpjdE5qY3laaTAwWmpVNUxXRXlPRFl0WVRSa01qWXhPRFJsTW1WayJ9",                               // 固定隧道密钥json或token,留空即启用临时隧道,json获取地址：https://json.zone.id
     tunnelLocalPort: process.env.ARGO_PORT || 8001,                            // 固定隧道端口,使用token需在cloudflare后台设置和这里一致
     cdnOptimizationDomain: process.env.CFIP || "cdns.doon.eu.org",             // 节点优选域名或优选ip 
     cdnOptimizationPort: process.env.CFPORT || 443,                            // 节点优选域名或优选ip对应的端口
