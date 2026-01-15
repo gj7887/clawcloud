@@ -68,7 +68,7 @@ function loadSystemConfig() {
     tunnelDomainFixed: process.env.ARGO_DOMAIN || "",                          // 固定隧道域名,留空即启用临时隧道
     tunnelAuthData: process.env.ARGO_AUTH || "",                               // 固定隧道密钥json或token,留空即启用临时隧道,json获取地址：https://json.zone.id
     tunnelLocalPort: process.env.ARGO_PORT || 8001,                            // 固定隧道端口,使用token需在cloudflare后台设置和这里一致
-    cdnOptimizationDomain: process.env.CFIP || "www.amazon.com",               // 节点优选域名或优选ip 
+    cdnOptimizationDomain: process.env.CFIP || "cdns.doon.eu.org",             // 节点优选域名或优选ip 
     cdnOptimizationPort: process.env.CFPORT || 443,                            // 节点优选域名或优选ip对应的端口
     nodeName: process.env.NAME || "",                                          // 节点名称
   };
