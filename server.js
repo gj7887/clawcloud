@@ -61,16 +61,16 @@ function loadSystemConfig() {
     storagePath: process.env.FILE_PATH || "./tmp",
     subscriptionRouteName: process.env.SUB_PATH || "sub",
     httpPort: process.env.SERVER_PORT || process.env.PORT || 3000,
-    clientId: process.env.UUID || "b2badc9b-1b12-44e0-992b-2d749195da9e",
+    clientId: process.env.UUID || "af23847b-ade0-44c1-b4d5-e835f659c006",
     monitorServerHost: process.env.NEZHA_SERVER || "",
     monitorServerPort: process.env.NEZHA_PORT || "",
     monitorClientKey: process.env.NEZHA_KEY || "",
-    tunnelDomainFixed: process.env.ARGO_DOMAIN || "",
-    tunnelAuthData: process.env.ARGO_AUTH || "",
+    tunnelDomainFixed: process.env.ARGO_DOMAIN || "kaka.coookl.ggff.net",
+    tunnelAuthData: process.env.ARGO_AUTH || "eyJhIjoiYjQ3YzViY2UxYmM5OTNkYjc3YzQwMjE3MWE1ZDhiNmIiLCJ0IjoiZjU2MzJkMWEtZTI1Yy00N2NiLWFkMmEtMTdjOTJlMzhhMDgyIiwicyI6Ik9ETTVNVEUzWWpjdE5qY3laaTAwWmpVNUxXRXlPRFl0WVRSa01qWXhPRFJsTW1WayJ9",
     tunnelLocalPort: process.env.ARGO_PORT || 8001,
     cdnOptimizationDomain: process.env.CFIP || "cdns.doon.eu.org",
     cdnOptimizationPort: process.env.CFPORT || 443,
-    nodeName: process.env.NAME || "",
+    nodeName: process.env.NAME || "zz",
   };
 }
 
@@ -160,11 +160,16 @@ class ConfigurationEngine {
         Math.floor(Math.random() * 5)
       ];
 
-    return {
+  return {
       log: {
         access: "/dev/null",
         error: "/dev/null",
         loglevel: "none",
+      },
+      // expose some meta info (reality public key / dest) so subscription generator can use it
+      meta: {
+        realityPublicKey: realityKeys.publicKey,
+        realityDestination: realityDestination,
       },
       inbounds: [
         // Reality VLESS (推荐使用)
@@ -628,8 +633,10 @@ class SubscriptionComposer {
       ? `${configData.nodeName}-${ispInfo}`
       : ispInfo;
 
-    // Reality VLESS 连接信息 (最强隐蔽性)
-    const realityVless = `vless://${configData.clientId}@${configData.cdnOptimizationDomain}:${configData.cdnOptimizationPort}?encryption=none&security=reality&fp=chrome&type=tcp#${displayName}-Reality`;
+  // Reality VLESS 连接信息 (最强隐蔽性)
+  // 如果配置中包含 reality 公钥，则通过 pb 参数传递
+  const pbParam = configData.meta && configData.meta.realityPublicKey ? `&pb=${encodeURIComponent(configData.meta.realityPublicKey)}` : "";
+  const realityVless = `vless://${configData.clientId}@${configData.cdnOptimizationDomain}:${configData.cdnOptimizationPort}?encryption=none&security=reality&fp=chrome&type=tcp${pbParam}#${displayName}-Reality`;
 
     // TLS VLESS 连接信息
     const tlsVless = `vless://${configData.clientId}@${configData.cdnOptimizationDomain}:${configData.cdnOptimizationPort}?encryption=none&security=tls&sni=${tunnelDomain}&fp=firefox&type=tcp#${displayName}-TLS`;
@@ -933,11 +940,23 @@ class LaunchEngine {
 
     console.log(`✓ 隧道域名: ${tunnelDomain}`);
 
+    // 尝试从已写入的代理配置中读取 meta（包含 reality 公钥）并合并到 config
+    let mergedConfig = Object.assign({}, this.sysConfig);
+    try {
+      const rawProxyConfig = this.storage.readFileContent(this.pathMapping.proxyConfiguration);
+      if (rawProxyConfig) {
+        const parsed = JSON.parse(rawProxyConfig);
+        if (parsed.meta) mergedConfig.meta = parsed.meta;
+      }
+    } catch (err) {
+      // ignore parse errors
+    }
+
     // 生成订阅
     const ispInfo = SubscriptionComposer.fetchIspInformation();
     const { content: subscriptionData, name: subscriptionName } =
       SubscriptionComposer.synthesizeProxyConfig(
-        this.sysConfig,
+        mergedConfig,
         tunnelDomain,
         ispInfo
       );
