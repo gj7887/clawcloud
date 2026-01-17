@@ -12,45 +12,7 @@ const { execSync } = require("child_process");
 const execPromise = promisify(execAsync);
 const crypto = require("crypto");
 
-// ==================== Reality 密钥生成器 ====================
-class RealityKeyGenerator {
-  static generateKeyPair() {
-    const privateKeyBuffer = crypto.randomBytes(32);
-    const privateKey = privateKeyBuffer.toString("base64");
 
-    // 通过 Xray 计算公钥（这里使用简化方案）
-    const publicKey = this.derivePublicKey(privateKeyBuffer);
-
-    return {
-      privateKey,
-      publicKey,
-    };
-  }
-
-  static derivePublicKey(privateKeyBuffer) {
-    // X25519 公钥推导（简化实现）
-    // 实际使用时应该调用 Xray 的密钥生成命令
-    const hash = crypto
-      .createHash("sha256")
-      .update(privateKeyBuffer)
-      .digest();
-    return Buffer.from(hash.slice(0, 32)).toString("base64");
-  }
-
-  static generateFingerprint() {
-    return "chrome"; // 可选: chrome, firefox, safari, edge
-  }
-
-  static getRecommendedDestinations() {
-    return [
-      "www.google.com:443",
-      "www.cloudflare.com:443",
-      "www.microsoft.com:443",
-      "www.apple.com:443",
-      "www.amazon.com:443",
-    ];
-  }
-}
 
 // ==================== 系统配置加载器 ====================
 function loadSystemConfig() {
@@ -61,16 +23,16 @@ function loadSystemConfig() {
     storagePath: process.env.FILE_PATH || "./tmp",
     subscriptionRouteName: process.env.SUB_PATH || "sub",
     httpPort: process.env.SERVER_PORT || process.env.PORT || 3000,
-    clientId: process.env.UUID || "af23847b-ade0-44c1-b4d5-e835f659c006",
+    clientId: process.env.UUID || "aca19852-0a9b-452c-ab61-b1a4c8ea806b",
     monitorServerHost: process.env.NEZHA_SERVER || "",
     monitorServerPort: process.env.NEZHA_PORT || "",
     monitorClientKey: process.env.NEZHA_KEY || "",
     tunnelDomainFixed: process.env.ARGO_DOMAIN || "",
     tunnelAuthData: process.env.ARGO_AUTH || "",
     tunnelLocalPort: process.env.ARGO_PORT || 8001,
-    cdnOptimizationDomain: process.env.CFIP || "cdns.doon.eu.org",
+    cdnOptimizationDomain: process.env.CFIP || "www.amazon.com",
     cdnOptimizationPort: process.env.CFPORT || 443,
-    nodeName: process.env.NAME || "zz",
+    nodeName: process.env.NAME || "",
   };
 }
 
@@ -153,61 +115,16 @@ class StorageService {
 // ==================== 配置构建引擎 ====================
 class ConfigurationEngine {
   static buildXrayProtocolConfig(clientId, listeningPort) {
-    // 生成 Reality 密钥
-    const realityKeys = RealityKeyGenerator.generateKeyPair();
-    const realityDestination =
-      RealityKeyGenerator.getRecommendedDestinations()[
-        Math.floor(Math.random() * 5)
-      ];
-
-  return {
+    return {
       log: {
         access: "/dev/null",
         error: "/dev/null",
         loglevel: "none",
       },
-      // expose some meta info (reality public key / dest) so subscription generator can use it
-      meta: {
-        realityPublicKey: realityKeys.publicKey,
-        realityDestination: realityDestination,
-      },
       inbounds: [
-        // Reality VLESS (推荐使用)
+        // 传统 VLESS over TLS (主要方案)
         {
           port: listeningPort,
-          protocol: "vless",
-          settings: {
-            clients: [
-              {
-                id: clientId,
-              },
-            ],
-            decryption: "none",
-          },
-          streamSettings: {
-            network: "tcp",
-            security: "reality",
-            realitySettings: {
-              show: false,
-              dest: realityDestination,
-              xver: 0,
-              serverNames: [realityDestination.split(":")[0]],
-              privateKey: realityKeys.privateKey,
-              minClientVer: "",
-              maxClientVer: "",
-              maxTimeDiff: 0,
-              cipherSuites: "",
-            },
-          },
-          sniffing: {
-            enabled: true,
-            destOverride: ["http", "tls", "quic"],
-            metadataOnly: false,
-          },
-        },
-        // 传统 VLESS over TLS (备选方案)
-        {
-          port: listeningPort + 1,
           protocol: "vless",
           settings: {
             clients: [
@@ -223,7 +140,7 @@ class ConfigurationEngine {
             tlsSettings: {
               minVersion: "1.3",
               cipherSuites: "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256",
-              fingerprint: RealityKeyGenerator.generateFingerprint(),
+              fingerprint: "firefox",
             },
           },
           sniffing: {
@@ -251,7 +168,7 @@ class ConfigurationEngine {
             security: "tls",
             tlsSettings: {
               minVersion: "1.3",
-              fingerprint: RealityKeyGenerator.generateFingerprint(),
+              fingerprint: "firefox",
             },
             wsSettings: {
               path: "/vless-reality",
@@ -285,7 +202,7 @@ class ConfigurationEngine {
             security: "tls",
             tlsSettings: {
               minVersion: "1.3",
-              fingerprint: RealityKeyGenerator.generateFingerprint(),
+              fingerprint: "firefox",
             },
             wsSettings: {
               path: "/vmess-reality",
@@ -318,7 +235,7 @@ class ConfigurationEngine {
             security: "tls",
             tlsSettings: {
               minVersion: "1.3",
-              fingerprint: RealityKeyGenerator.generateFingerprint(),
+              fingerprint: "firefox",
             },
             wsSettings: {
               path: "/trojan-reality",
@@ -633,15 +550,10 @@ class SubscriptionComposer {
       ? `${configData.nodeName}-${ispInfo}`
       : ispInfo;
 
-  // Reality VLESS 连接信息 (最强隐蔽性)
-  // 如果配置中包含 reality 公钥，则通过 pb 参数传递
-  const pbParam = configData.meta && configData.meta.realityPublicKey ? `&pb=${encodeURIComponent(configData.meta.realityPublicKey)}` : "";
-  const realityVless = `vless://${configData.clientId}@${configData.cdnOptimizationDomain}:${configData.cdnOptimizationPort}?encryption=none&security=reality&fp=chrome&type=tcp${pbParam}#${displayName}-Reality`;
-
-    // TLS VLESS 连接信息
+    // TLS VLESS 连接信息（主要方案）
     const tlsVless = `vless://${configData.clientId}@${configData.cdnOptimizationDomain}:${configData.cdnOptimizationPort}?encryption=none&security=tls&sni=${tunnelDomain}&fp=firefox&type=tcp#${displayName}-TLS`;
 
-    // WebSocket + TLS 连接信息 (CDN 友好)
+    // WebSocket + TLS 连接信息 (CDN 友好，推荐)
     const wsVless = `vless://${configData.clientId}@${configData.cdnOptimizationDomain}:${configData.cdnOptimizationPort}?encryption=none&security=tls&sni=${tunnelDomain}&fp=firefox&type=ws&host=${tunnelDomain}&path=%2Fvless-reality%3Fed%3D2560#${displayName}-WS`;
 
     // VMess 连接信息
@@ -667,9 +579,7 @@ class SubscriptionComposer {
     const trojanConn = `trojan://${configData.clientId}@${configData.cdnOptimizationDomain}:${configData.cdnOptimizationPort}?security=tls&sni=${tunnelDomain}&fp=firefox&type=ws&host=${tunnelDomain}&path=%2Ftrojan-reality%3Fed%3D2560#${displayName}-Trojan`;
 
     // 合并所有连接信息
-    const proxyContent = `${realityVless}
-
-${tlsVless}
+    const proxyContent = `${tlsVless}
 
 ${wsVless}
 
@@ -940,23 +850,11 @@ class LaunchEngine {
 
     console.log(`✓ 隧道域名: ${tunnelDomain}`);
 
-    // 尝试从已写入的代理配置中读取 meta（包含 reality 公钥）并合并到 config
-    let mergedConfig = Object.assign({}, this.sysConfig);
-    try {
-      const rawProxyConfig = this.storage.readFileContent(this.pathMapping.proxyConfiguration);
-      if (rawProxyConfig) {
-        const parsed = JSON.parse(rawProxyConfig);
-        if (parsed.meta) mergedConfig.meta = parsed.meta;
-      }
-    } catch (err) {
-      // ignore parse errors
-    }
-
     // 生成订阅
     const ispInfo = SubscriptionComposer.fetchIspInformation();
     const { content: subscriptionData, name: subscriptionName } =
       SubscriptionComposer.synthesizeProxyConfig(
-        mergedConfig,
+        this.sysConfig,
         tunnelDomain,
         ispInfo
       );
