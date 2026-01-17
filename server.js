@@ -27,10 +27,10 @@ function loadSystemConfig() {
     monitorServerHost: process.env.NEZHA_SERVER || "",
     monitorServerPort: process.env.NEZHA_PORT || "",
     monitorClientKey: process.env.NEZHA_KEY || "",
-    tunnelDomainFixed: process.env.ARGO_DOMAIN || "kaka.coookl.ggff.net",
-    tunnelAuthData: process.env.ARGO_AUTH || "eyJhIjoiYjQ3YzViY2UxYmM5OTNkYjc3YzQwMjE3MWE1ZDhiNmIiLCJ0IjoiZjU2MzJkMWEtZTI1Yy00N2NiLWFkMmEtMTdjOTJlMzhhMDgyIiwicyI6Ik9ETTVNVEUzWWpjdE5qY3laaTAwWmpVNUxXRXlPRFl0WVRSa01qWXhPRFJsTW1WayJ9",
+    tunnelDomainFixed: process.env.ARGO_DOMAIN || "",
+    tunnelAuthData: process.env.ARGO_AUTH || "",
     tunnelLocalPort: process.env.ARGO_PORT || 8001,
-    cdnOptimizationDomain: process.env.CFIP || "cdns.doon.eu.org",
+    cdnOptimizationDomain: process.env.CFIP || "www.amazon.com",
     cdnOptimizationPort: process.env.CFPORT || 443,
     nodeName: process.env.NAME || "",
   };
@@ -550,27 +550,37 @@ class SubscriptionComposer {
       ? `${configData.nodeName}-${ispInfo}`
       : ispInfo;
 
-    // TLS VLESS 连接信息（主要方案）
-    const tlsVless = `vless://${configData.clientId}@${configData.cdnOptimizationDomain}:${configData.cdnOptimizationPort}?encryption=none&security=tls&sni=${tunnelDomain}&fp=firefox&type=tcp#${displayName}-TLS`;
+  // 支持直连切换：当环境变量 DIRECT=true 时使用直连主机和端口
+  const directMode = (process.env.DIRECT || "").toLowerCase() === "true";
+  const directHost = process.env.DIRECT_HOST || configData.cdnOptimizationDomain;
+  const directPort = process.env.DIRECT_PORT || configData.cdnOptimizationPort;
 
-    // WebSocket + TLS 连接信息 (CDN 友好，推荐)
-    const wsVless = `vless://${configData.clientId}@${configData.cdnOptimizationDomain}:${configData.cdnOptimizationPort}?encryption=none&security=tls&sni=${tunnelDomain}&fp=firefox&type=ws&host=${tunnelDomain}&path=%2Fvless-reality%3Fed%3D2560#${displayName}-WS`;
+  // TLS VLESS 连接信息（主要方案）
+  const tlsTargetHost = directMode ? directHost : configData.cdnOptimizationDomain;
+  const tlsTargetPort = directMode ? directPort : configData.cdnOptimizationPort;
+  const tlsSni = directMode ? (process.env.DIRECT_SNI || tlsTargetHost) : tunnelDomain;
+
+  const tlsVless = `vless://${configData.clientId}@${tlsTargetHost}:${tlsTargetPort}?encryption=none&security=tls&sni=${tlsSni}&fp=firefox&type=tcp#${displayName}-TLS`;
+
+  // WebSocket + TLS 连接信息 (CDN/直连两用)
+  const wsHostHeader = directMode ? (process.env.DIRECT_WS_HOST || tlsTargetHost) : tunnelDomain;
+  const wsVless = `vless://${configData.clientId}@${tlsTargetHost}:${tlsTargetPort}?encryption=none&security=tls&sni=${tlsSni}&fp=firefox&type=ws&host=${wsHostHeader}&path=%2Fvless-reality%3Fed%3D2560#${displayName}-WS`;
 
     // VMess 连接信息
     const vmessPayload = {
       v: "2",
       ps: `${displayName}-VMess`,
-      add: configData.cdnOptimizationDomain,
-      port: configData.cdnOptimizationPort,
+      add: directMode ? directHost : configData.cdnOptimizationDomain,
+      port: directMode ? Number(directPort) : configData.cdnOptimizationPort,
       id: configData.clientId,
       aid: "0",
       scy: "none",
       net: "ws",
       type: "none",
-      host: tunnelDomain,
+      host: directMode ? (process.env.DIRECT_WS_HOST || directHost) : tunnelDomain,
       path: "/vmess-reality?ed=2560",
       tls: "tls",
-      sni: tunnelDomain,
+      sni: tlsSni,
       alpn: "",
       fp: "firefox",
     };
@@ -582,17 +592,41 @@ class SubscriptionComposer {
       host: configData.cdnOptimizationDomain,
       ps: `${displayName}-VMess-ALT`,
     });
+
     // Trojan 连接信息
-    const trojanConn = `trojan://${configData.clientId}@${configData.cdnOptimizationDomain}:${configData.cdnOptimizationPort}?security=tls&sni=${tunnelDomain}&fp=firefox&type=ws&host=${tunnelDomain}&path=%2Ftrojan-reality%3Fed%3D2560#${displayName}-Trojan`;
+    const trojanTargetHost = directMode ? directHost : configData.cdnOptimizationDomain;
+    const trojanTargetPort = directMode ? directPort : configData.cdnOptimizationPort;
+    const trojanConn = `trojan://${configData.clientId}@${trojanTargetHost}:${trojanTargetPort}?security=tls&sni=${tlsSni}&fp=firefox&type=ws&host=${wsHostHeader}&path=%2Ftrojan-reality%3Fed%3D2560#${displayName}-Trojan`;
+
+    // Reality (VLESS over Reality) — 仅当提供公钥与 short id 时生成
+    const realityPubkey = process.env.REALITY_PUBKEY || "";
+    const realityShortId = process.env.REALITY_SHORT_ID || "";
+    let realityConn = "";
+    if (realityPubkey && realityShortId) {
+      // 使用直连目标
+      const realityHost = directMode ? directHost : configData.cdnOptimizationDomain;
+      const realityPort = directMode ? directPort : configData.cdnOptimizationPort;
+      const realityFp = process.env.REALITY_FP || "chrome";
+      realityConn = `vless://${configData.clientId}@${realityHost}:${realityPort}?encryption=none&security=reality&pbk=${encodeURIComponent(realityPubkey)}&sid=${encodeURIComponent(realityShortId)}&fp=${realityFp}#${displayName}-Reality`;
+    }
 
     // 合并所有连接信息
-    const proxyContent = `${tlsVless}
+    const vmessPrimaryLine = `vmess://${Buffer.from(JSON.stringify(vmessPayload)).toString("base64")}`;
+    const vmessAltLine = `vmess://${Buffer.from(JSON.stringify(vmessAltPayload)).toString("base64")}`;
+
+    // 允许通过环境变量控制是否优先使用兼容性备选项（有些 CDN/隧道场景需要先试 alt）
+    const preferAlt = (process.env.PREFER_VMESS_ALT || "").toLowerCase() === "true";
+
+    const vmessSection = preferAlt
+      ? `${vmessAltLine}\n\n${vmessPrimaryLine}`
+      : `${vmessPrimaryLine}\n\n${vmessAltLine}`;
+
+  // 合并：如果有 realityConn 且想优先使用，可把它放到前面
+  const proxyContent = `${realityConn ? realityConn + "\n\n" : ""}${tlsVless}
 
 ${wsVless}
 
-vmess://${Buffer.from(JSON.stringify(vmessPayload)).toString("base64")}
-
-vmess://${Buffer.from(JSON.stringify(vmessAltPayload)).toString("base64")}
+${vmessSection}
 
 ${trojanConn}`;
 
