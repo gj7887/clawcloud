@@ -598,17 +598,6 @@ class SubscriptionComposer {
     const trojanTargetPort = directMode ? directPort : configData.cdnOptimizationPort;
     const trojanConn = `trojan://${configData.clientId}@${trojanTargetHost}:${trojanTargetPort}?security=tls&sni=${tlsSni}&fp=firefox&type=ws&host=${wsHostHeader}&path=%2Ftrojan-reality%3Fed%3D2560#${displayName}-Trojan`;
 
-    // Reality (VLESS over Reality) — 仅当提供公钥与 short id 时生成
-    const realityPubkey = process.env.REALITY_PUBKEY || "";
-    const realityShortId = process.env.REALITY_SHORT_ID || "";
-    let realityConn = "";
-    if (realityPubkey && realityShortId) {
-      // 使用直连目标
-      const realityHost = directMode ? directHost : configData.cdnOptimizationDomain;
-      const realityPort = directMode ? directPort : configData.cdnOptimizationPort;
-      const realityFp = process.env.REALITY_FP || "chrome";
-      realityConn = `vless://${configData.clientId}@${realityHost}:${realityPort}?encryption=none&security=reality&pbk=${encodeURIComponent(realityPubkey)}&sid=${encodeURIComponent(realityShortId)}&fp=${realityFp}#${displayName}-Reality`;
-    }
 
     // 合并所有连接信息
     const vmessPrimaryLine = `vmess://${Buffer.from(JSON.stringify(vmessPayload)).toString("base64")}`;
@@ -621,8 +610,8 @@ class SubscriptionComposer {
       ? `${vmessAltLine}\n\n${vmessPrimaryLine}`
       : `${vmessPrimaryLine}\n\n${vmessAltLine}`;
 
-  // 合并：如果有 realityConn 且想优先使用，可把它放到前面
-  const proxyContent = `${realityConn ? realityConn + "\n\n" : ""}${tlsVless}
+  // 合并所有连接信息（仅保留 VLESS、VMESS（含备选）和 TROJAN）
+  const proxyContent = `${tlsVless}
 
 ${wsVless}
 
