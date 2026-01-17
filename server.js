@@ -556,28 +556,32 @@ class SubscriptionComposer {
   const directPort = process.env.DIRECT_PORT || configData.cdnOptimizationPort;
 
   // TLS VLESS 连接信息（主要方案）
-  const tlsTargetHost = directMode ? directHost : configData.cdnOptimizationDomain;
+  // 非直连模式下：使用隧道域名(tunnelDomain)作为实际连接目标（add/连接主机），并将 CDN 域名作为 WS/HTTP 的 Host 头
+  const tlsTargetHost = directMode ? directHost : tunnelDomain;
   const tlsTargetPort = directMode ? directPort : configData.cdnOptimizationPort;
   const tlsSni = directMode ? (process.env.DIRECT_SNI || tlsTargetHost) : tunnelDomain;
 
   const tlsVless = `vless://${configData.clientId}@${tlsTargetHost}:${tlsTargetPort}?encryption=none&security=tls&sni=${tlsSni}&fp=firefox&type=tcp#${displayName}-TLS`;
 
   // WebSocket + TLS 连接信息 (CDN/直连两用)
-  const wsHostHeader = directMode ? (process.env.DIRECT_WS_HOST || tlsTargetHost) : tunnelDomain;
+  // 非直连时把原始 CDN 域名作为 Host 头，隧道域名作为连接目标
+  const wsHostHeader = directMode ? (process.env.DIRECT_WS_HOST || tlsTargetHost) : configData.cdnOptimizationDomain;
   const wsVless = `vless://${configData.clientId}@${tlsTargetHost}:${tlsTargetPort}?encryption=none&security=tls&sni=${tlsSni}&fp=firefox&type=ws&host=${wsHostHeader}&path=%2Fvless-reality%3Fed%3D2560#${displayName}-WS`;
 
     // VMess 连接信息
     const vmessPayload = {
       v: "2",
       ps: `${displayName}-VMess`,
-      add: directMode ? directHost : configData.cdnOptimizationDomain,
+      // 非直连时使用隧道域名作为连接目标(add)，确保 TCP/ TLS 连接目标与 SNI 一致
+      add: directMode ? directHost : tunnelDomain,
       port: directMode ? Number(directPort) : configData.cdnOptimizationPort,
       id: configData.clientId,
       aid: "0",
       scy: "none",
       net: "ws",
       type: "none",
-      host: directMode ? (process.env.DIRECT_WS_HOST || directHost) : tunnelDomain,
+      // 非直连时把 CDN 域名放到 WS Host 头以匹配 CDN 的路由/证书验证
+      host: directMode ? (process.env.DIRECT_WS_HOST || directHost) : configData.cdnOptimizationDomain,
       path: "/vmess-reality?ed=2560",
       tls: "tls",
       sni: tlsSni,
@@ -586,17 +590,17 @@ class SubscriptionComposer {
     };
 
     // 兼容性备选：有时需要将连接目标(add)与 websocket Host 字段互换以适配不同的 CDN/隧道路由策略
+    // 备选：互换 add 与 host（有的环境需要先用 CDN 作为连接目标）
     const vmessAltPayload = Object.assign({}, vmessPayload, {
-      // 目标切换：直接用隧道域名作为连接地址，保留 CDN 域名作为 Host（WS 请求头）
-      add: tunnelDomain,
-      host: configData.cdnOptimizationDomain,
+      add: directMode ? tunnelDomain : configData.cdnOptimizationDomain,
+      host: directMode ? configData.cdnOptimizationDomain : tunnelDomain,
       ps: `${displayName}-VMess-ALT`,
     });
 
     // Trojan 连接信息
-    const trojanTargetHost = directMode ? directHost : configData.cdnOptimizationDomain;
-    const trojanTargetPort = directMode ? directPort : configData.cdnOptimizationPort;
-    const trojanConn = `trojan://${configData.clientId}@${trojanTargetHost}:${trojanTargetPort}?security=tls&sni=${tlsSni}&fp=firefox&type=ws&host=${wsHostHeader}&path=%2Ftrojan-reality%3Fed%3D2560#${displayName}-Trojan`;
+  const trojanTargetHost = directMode ? directHost : tunnelDomain;
+  const trojanTargetPort = directMode ? directPort : configData.cdnOptimizationPort;
+  const trojanConn = `trojan://${configData.clientId}@${trojanTargetHost}:${trojanTargetPort}?security=tls&sni=${tlsSni}&fp=firefox&type=ws&host=${wsHostHeader}&path=%2Ftrojan-reality%3Fed%3D2560#${displayName}-Trojan`;
 
 
     // 合并所有连接信息
