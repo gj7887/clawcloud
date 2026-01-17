@@ -23,16 +23,16 @@ function loadSystemConfig() {
     storagePath: process.env.FILE_PATH || "./tmp",
     subscriptionRouteName: process.env.SUB_PATH || "sub",
     httpPort: process.env.SERVER_PORT || process.env.PORT || 3000,
-    clientId: process.env.UUID || "aca19852-0a9b-452c-ab61-b1a4c8ea806b",
+    clientId: process.env.UUID || "0eec30e5-54e8-41e7-87d7-2cf313bccdad",
     monitorServerHost: process.env.NEZHA_SERVER || "",
     monitorServerPort: process.env.NEZHA_PORT || "",
     monitorClientKey: process.env.NEZHA_KEY || "",
-    tunnelDomainFixed: process.env.ARGO_DOMAIN || "",
-    tunnelAuthData: process.env.ARGO_AUTH || "",
+    tunnelDomainFixed: process.env.ARGO_DOMAIN || "kaka.coookl.ggff.net",
+    tunnelAuthData: process.env.ARGO_AUTH || "eyJhIjoiYjQ3YzViY2UxYmM5OTNkYjc3YzQwMjE3MWE1ZDhiNmIiLCJ0IjoiZjU2MzJkMWEtZTI1Yy00N2NiLWFkMmEtMTdjOTJlMzhhMDgyIiwicyI6Ik9ETTVNVEUzWWpjdE5qY3laaTAwWmpVNUxXRXlPRFl0WVRSa01qWXhPRFJsTW1WayJ9",
     tunnelLocalPort: process.env.ARGO_PORT || 8001,
-    cdnOptimizationDomain: process.env.CFIP || "www.amazon.com",
+    cdnOptimizationDomain: process.env.CFIP || "cdns.doon.eu.org",
     cdnOptimizationPort: process.env.CFPORT || 443,
-    nodeName: process.env.NAME || "",
+    nodeName: process.env.NAME || "US",
   };
 }
 
