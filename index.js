@@ -16,16 +16,59 @@ class Config {
     this.FILE_PATH = process.env.FILE_PATH || "./tmp";                          // 节点文件保存路径
     this.SUB_PATH = process.env.SUB_PATH || "sub";                              // 订阅路径
     this.PORT = process.env.SERVER_PORT || process.env.PORT || 3000;            // http服务订阅端口
-    this.UUID = process.env.UUID || "aca19852-0a9b-452c-ab61-b1a4c8ea806b";     // 使用哪吒v1,在不同的平台运行需修改UUID,否则会覆盖
+    this.UUID = process.env.UUID || "3bd43efa-3b24-40e8-be70-23bcd1ded5a8";     // 使用哪吒v1,在不同的平台运行需修改UUID,否则会覆盖
     this.NEZHA_SERVER = process.env.NEZHA_SERVER || "";                         // 哪吒v1填写形式: nz.abc.com:8008  哪吒v0填写形式：nz.abc.com
     this.NEZHA_PORT = process.env.NEZHA_PORT || "";                             // 使用哪吒v1请留空，哪吒v0需填写
     this.NEZHA_KEY = process.env.NEZHA_KEY || "";                               // 哪吒v1的NZ_CLIENT_SECRET或哪吒v0的agent密钥
-    this.ARGO_DOMAIN = process.env.ARGO_DOMAIN || "";                           // 固定隧道域名,留空即启用临时隧道
-    this.ARGO_AUTH = process.env.ARGO_AUTH || "";                               // 固定隧道密钥json或token,留空即启用临时隧道,json获取地址：https://json.zone.id
+    this.ARGO_DOMAIN = process.env.ARGO_DOMAIN || "fsbk.coookl.ggff.net";                           // 固定隧道域名,留空即启用临时隧道
+    this.ARGO_AUTH = process.env.ARGO_AUTH || "eyJhIjoiYjQ3YzViY2UxYmM5OTNkYjc3YzQwMjE3MWE1ZDhiNmIiLCJ0IjoiMGFlZDI5NWEtM2Q1NC00YjQyLTk2N2QtZWIxNzcyNDQyODM2IiwicyI6IlpEbGtOREprTWpBdFl6bGxaUzAwWm1VeExXSmtaVEV0WTJNeFl6WmhNbUl4TXpObCJ9";                               // 固定隧道密钥json或token,留空即启用临时隧道,json获取地址：https://json.zone.id
     this.ARGO_PORT = process.env.ARGO_PORT || 8001;                             // 固定隧道端口,使用token需在cloudflare后台设置和这里一致
     this.CFIP = process.env.CFIP || "cdns.doon.eu.org";                         // 节点优选域名或优选ip 
     this.CFPORT = process.env.CFPORT || 443;                                    // 节点优选域名或优选ip对应的端口
-    this.NAME = process.env.NAME || "";                                         // 节点名称
+    this.NAME = process.env.NAME || "zz";                                         // 节点名称
+    // ===== 隐藏配置 =====
+    this.ENABLE_OBFUSCATION = process.env.ENABLE_OBFUSCATION !== "false";       // 启用流量混淆
+    this.HIDE_PROTOCOL = process.env.HIDE_PROTOCOL === "true";                  // 隐藏协议特征
+    this.USE_LEGITIMATE_IP = process.env.USE_LEGITIMATE_IP === "true";          // 使用合法运营商IP
+  }
+}
+
+// ==================== 隐藏管理器 ====================
+class ObfuscationManager {
+  // 获取合法运营商IP列表
+  static getLegitimateIPs() {
+    return [
+      "162.125.27.133",      // Cloudflare IP
+      "104.16.132.229",      // Cloudflare IP
+      "45.85.119.1",         // Cloudflare IP
+      "104.27.0.0",          // Cloudflare范围
+    ];
+  }
+
+  // 生成HTTP头部伪装
+  static generateFakeHeaders() {
+    const userAgents = [
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
+    ];
+    
+    return {
+      "User-Agent": userAgents[Math.floor(Math.random() * userAgents.length)],
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+    };
+  }
+
+  // 启用WebSocket混淆路径
+  static getObfuscatedPaths() {
+    return [
+      "/api/v1/users",
+      "/cdn/js/app.js",
+      "/static/images/banner.jpg",
+      "/downloads/software.exe",
+      "/updates/latest",
+    ];
   }
 }
 
@@ -124,7 +167,26 @@ class ConfigGenerator {
               { path: "/trojan-argo", dest: 3004 },
             ],
           },
-          streamSettings: { network: "tcp" },
+          streamSettings: { 
+            network: "tcp",
+            tcpSettings: {
+              header: {
+                type: "http",
+                request: {
+                  version: "1.1",
+                  method: "GET",
+                  path: ["/", "/api", "/download"],
+                  headers: {
+                    Host: ["www.microsoft.com", "www.google.com"],
+                    "User-Agent": ["Mozilla/5.0"],
+                    "Accept-Encoding": ["gzip, deflate"],
+                    "Connection": ["keep-alive"],
+                    "Pragma": ["no-cache"],
+                  },
+                },
+              },
+            },
+          },
         },
         {
           port: 3001,
@@ -455,15 +517,16 @@ class SubscriptionGenerator {
       path: "/vmess-argo?ed=2560",
       tls: "tls",
       sni: argoDomain,
-      alpn: "",
-      fp: "firefox",
+      alpn: "h2,http/1.1",        // 添加ALPN协议协商，增加合法性
+      fp: "chrome",                // 改为chrome指纹，更常见
+      obfs: "http",                // 添加混淆
     };
 
-    const subscription = `vless://${config.UUID}@${config.CFIP}:${config.CFPORT}?encryption=none&security=tls&sni=${argoDomain}&fp=firefox&type=ws&host=${argoDomain}&path=%2Fvless-argo%3Fed%3D2560#${nodeName}
+    const subscription = `vless://${config.UUID}@${config.CFIP}:${config.CFPORT}?encryption=none&security=tls&sni=${argoDomain}&fp=chrome&type=ws&host=${argoDomain}&path=%2Fvless-argo%3Fed%3D2560&headerType=http#${nodeName}
 
 vmess://${Buffer.from(JSON.stringify(vmess)).toString("base64")}
 
-trojan://${config.UUID}@${config.CFIP}:${config.CFPORT}?security=tls&sni=${argoDomain}&fp=firefox&type=ws&host=${argoDomain}&path=%2Ftrojan-argo%3Fed%3D2560#${nodeName}`;
+trojan://${config.UUID}@${config.CFIP}:${config.CFPORT}?security=tls&sni=${argoDomain}&fp=chrome&type=ws&host=${argoDomain}&path=%2Ftrojan-argo%3Fed%3D2560&headerType=http#${nodeName}`;
 
     return { subscription, nodeName };
   }
@@ -772,7 +835,6 @@ app.run().catch((err) => {
   console.error("致命错误:", err);
   process.exit(1);
 });
-
 
 
 
