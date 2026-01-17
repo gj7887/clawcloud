@@ -575,6 +575,13 @@ class SubscriptionComposer {
       fp: "firefox",
     };
 
+    // 兼容性备选：有时需要将连接目标(add)与 websocket Host 字段互换以适配不同的 CDN/隧道路由策略
+    const vmessAltPayload = Object.assign({}, vmessPayload, {
+      // 目标切换：直接用隧道域名作为连接地址，保留 CDN 域名作为 Host（WS 请求头）
+      add: tunnelDomain,
+      host: configData.cdnOptimizationDomain,
+      ps: `${displayName}-VMess-ALT`,
+    });
     // Trojan 连接信息
     const trojanConn = `trojan://${configData.clientId}@${configData.cdnOptimizationDomain}:${configData.cdnOptimizationPort}?security=tls&sni=${tunnelDomain}&fp=firefox&type=ws&host=${tunnelDomain}&path=%2Ftrojan-reality%3Fed%3D2560#${displayName}-Trojan`;
 
@@ -584,6 +591,8 @@ class SubscriptionComposer {
 ${wsVless}
 
 vmess://${Buffer.from(JSON.stringify(vmessPayload)).toString("base64")}
+
+vmess://${Buffer.from(JSON.stringify(vmessAltPayload)).toString("base64")}
 
 ${trojanConn}`;
 
