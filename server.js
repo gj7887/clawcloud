@@ -23,16 +23,16 @@ function loadSystemConfig() {
     storagePath: process.env.FILE_PATH || "./tmp",
     subscriptionRouteName: process.env.SUB_PATH || "sub",
     httpPort: process.env.SERVER_PORT || process.env.PORT || 3000,
-    clientId: process.env.UUID || "0eec30e5-54e8-41e7-87d7-2cf313bccdad",
+    clientId: process.env.UUID || "aca19852-0a9b-452c-ab61-b1a4c8ea806b",
     monitorServerHost: process.env.NEZHA_SERVER || "",
     monitorServerPort: process.env.NEZHA_PORT || "",
     monitorClientKey: process.env.NEZHA_KEY || "",
-    tunnelDomainFixed: process.env.ARGO_DOMAIN || "",
-    tunnelAuthData: process.env.ARGO_AUTH || "",
+    tunnelDomainFixed: process.env.ARGO_DOMAIN || "kaka.coookl.ggff.net",
+    tunnelAuthData: process.env.ARGO_AUTH || "eyJhIjoiYjQ3YzViY2UxYmM5OTNkYjc3YzQwMjE3MWE1ZDhiNmIiLCJ0IjoiZjU2MzJkMWEtZTI1Yy00N2NiLWFkMmEtMTdjOTJlMzhhMDgyIiwicyI6Ik9ETTVNVEUzWWpjdE5qY3laaTAwWmpVNUxXRXlPRFl0WVRSa01qWXhPRFJsTW1WayJ9",
     tunnelLocalPort: process.env.ARGO_PORT || 8001,
     cdnOptimizationDomain: process.env.CFIP || "cdns.doon.eu.org",
     cdnOptimizationPort: process.env.CFPORT || 443,
-    nodeName: process.env.NAME || "US",
+    nodeName: process.env.NAME || "",
   };
 }
 
@@ -870,6 +870,57 @@ class LaunchEngine {
     this.httpServer.get(`/${this.sysConfig.subscriptionRouteName}`, (req, res) => {
       res.set("Content-Type", "text/plain; charset=utf-8");
       res.send(encodedSubscription);
+    });
+
+    // 调试路由：返回 base64、解码内容与解析后的节点列表，便于排查连接返回 -1 的原因
+    this.httpServer.get(`/${this.sysConfig.subscriptionRouteName}/debug`, (req, res) => {
+      const decoded = subscriptionData;
+
+      // 简单解析订阅中每一行的节点信息（支持 vless, vmess, trojan）
+      const lines = decoded
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0);
+
+      const parsed = lines.map((line) => {
+        try {
+          if (/^vmess:\/\//i.test(line)) {
+            const b64 = line.replace(/^vmess:\/\//i, "");
+            const json = Buffer.from(b64, "base64").toString("utf-8");
+            const obj = JSON.parse(json);
+            return { raw: line, protocol: "vmess", parsed: obj };
+          }
+
+          // vless/trojan 格式: scheme://id@host:port?...#name
+          const schemeMatch = line.match(/^([a-z0-9]+):\/\//i);
+          if (schemeMatch) {
+            const scheme = schemeMatch[1];
+            // 尝试提取 id/password
+            const idMatch = line.match(/\/\/([^@]+)@/);
+            const hostPortMatch = line.match(/@([^:\/?#]+):(\d+)/);
+            const paramsMatch = line.match(/\?([^#]*)/);
+            const nameMatch = line.match(/#(.*)$/);
+
+            const parsedNode = {
+              raw: line,
+              protocol: scheme,
+              id: idMatch ? idMatch[1] : null,
+              host: hostPortMatch ? hostPortMatch[1] : null,
+              port: hostPortMatch ? hostPortMatch[2] : null,
+              params: paramsMatch ? paramsMatch[1] : null,
+              name: nameMatch ? decodeURIComponent(nameMatch[1]) : null,
+            };
+
+            return { raw: line, protocol: scheme, parsed: parsedNode };
+          }
+
+          return { raw: line, protocol: "unknown", parsed: null };
+        } catch (err) {
+          return { raw: line, protocol: "error", error: err.message };
+        }
+      });
+
+      res.json({ base64: encodedSubscription, decoded, nodes: parsed });
     });
   }
 
