@@ -1,6 +1,6 @@
-# Reality VLESS 代理系统
+# VLESS 代理系统
 
-> 基于 Xray 的 VLESS over TLS with Reality 代理服务，提供无法被 DPI 识别的加密流量。
+> 基于 Xray 的 VLESS over TLS 代理服务
 
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green)](https://nodejs.org)
 [![License](https://img.shields.io/badge/License-MIT-blue)](#)
@@ -8,10 +8,10 @@
 
 ## ✨ 核心特性
 
-- 🔐 **VLESS over TLS with Reality** - 完全伪装为真实网站流量
+- 🔐 **VLESS over TLS ** - 完全伪装为真实网站流量
 - 🚀 **高性能** - 原生 TCP 速度，无加密开销
 - 🎭 **多伪装目标** - 随机选择 Google/Cloudflare/Microsoft 等
-- 📱 **多协议支持** - Reality/TLS/WebSocket/VMess/Trojan
+- 📱 **多协议支持** - TLS/WebSocket/VMess/Trojan
 - 🛡️ **TLS 1.3** - 最新加密标准，前向保密
 - 🌐 **Cloudflare 隧道** - 支持固定和临时隧道
 - 📊 **自动监控** - 集成哪吒监控系统（可选）
@@ -21,7 +21,6 @@
 
 | 场景 | 推荐方案 |
 |------|---------|
-| 防 DPI 识别 | VLESS + Reality |
 | CDN 加速 | VLESS + WebSocket + TLS |
 | 低级用户 | VMess + WebSocket |
 | 紧急情况 | Trojan + WebSocket |
@@ -85,14 +84,10 @@ curl http://localhost:3000/sub | base64 -d
 
 ### 5️⃣ 客户端连接
 
-在 **V2rayN**、**Nekoray** 等客户端中导入订阅链接，选择 Reality 节点连接。
+在 **V2rayN**、**Nekoray** 等客户端中导入订阅链接
 
 ## 🔗 连接示例
 
-### Reality VLESS (推荐)
-```
-vless://f47c4e0c-0b7a-4c1c-8e1f-1a2b3c4d5e6f@your-ip:8001?encryption=none&security=reality&fp=chrome&type=tcp#Reality
-```
 
 ### TLS VLESS (备选)
 ```
@@ -159,12 +154,6 @@ node server.js
 nohup node server.js > app.log 2>&1 &
 ```
 
-### Systemd 服务 (Linux)
-```bash
-sudo systemctl start reality-proxy
-sudo systemctl enable reality-proxy
-```
-
 ### Docker 容器
 ```bash
 docker run -d \
@@ -177,21 +166,14 @@ docker run -d \
   reality-proxy:latest
 ```
 
-### PM2 进程管理
-```bash
-pm2 start server.js --name "reality-proxy"
-pm2 save
-pm2 startup
-```
-
 ## 🔒 协议对比
 
-| 特性 | Reality | TLS | WebSocket | VMess | Trojan |
+| 特性 |  TLS | WebSocket | VMess | Trojan |
 |------|---------|-----|-----------|-------|--------|
-| **隐蔽性** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ |
-| **速度** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
-| **兼容性** | ⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ |
-| **端口** | 8001 | 8002 | 3002 | 3003 | 3004 |
+| **隐蔽性** | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ |
+| **速度** | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
+| **兼容性** | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ |
+| **端口** | 8001 | 3002 | 3003 | 3004 |
 
 ## 📊 性能指标
 
@@ -204,7 +186,7 @@ pm2 startup
 ## 📱 客户端支持
 
 ### Windows / Linux / macOS
-- ✅ **V2rayN** - 功能完整，Reality 支持好
+- ✅ **V2rayN** - 功能完整
 - ✅ **Nekoray** - 现代界面，推荐
 - ✅ **V2rayA** - Web 界面，便于管理
 - ✅ **Clash Meta** - 高级功能
@@ -324,8 +306,7 @@ MIT License - 自由使用和修改
 ## 📝 更新日志
 
 ### v1.0 - 2026-01-15
-- ✅ 完成 Reality 协议集成
-- ✅ 多协议支持 (Reality/TLS/WS/VMess/Trojan)
+- ✅ 多协议支持 (/TLS/WS/VMess/Trojan)
 - ✅ 自动密钥生成
 - ✅ 完整文档编写
 - ✅ 部署和测试指南
