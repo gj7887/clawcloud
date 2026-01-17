@@ -2,7 +2,7 @@
   "name": "clawcloud",
   "version": "1.0.0",
   "description": "A Node.js application for managing cloud services with Xray, Nezha, and Cloudflare integration",
-  "main": "server.js",
+  "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "dev": "node index.js"
